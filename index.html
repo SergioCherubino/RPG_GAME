@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>RPG Board Game - Escolha Seu Herói</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <h1>Escolha Seu Personagem</h1>
+
+  <div id="character-list">
+    <div class="character-card" data-char="warrior">
+      <img src="Assets/chars/warrior.png" alt="Warrior">
+      <p>Warrior</p>
+    </div>
+    <div class="character-card" data-char="mage">
+      <img src="Assets/chars/mage.jpg" alt="Mage">
+      <p>Mage</p>
+    </div>
+    <div class="character-card" data-char="rogue">
+      <img src="Assets/chars/rogue.jpg" alt="Rogue">
+      <p>Rogue</p>
+    </div>
+  </div>
+
+  <button id="startBtn">Start Game</button>
+  <button id="editorBtn" class="editor-btn">Editor de Mapas</button>
+
+  <script type="module" src="/game js/startGame.js"></script>
+
+</body>
+</html>

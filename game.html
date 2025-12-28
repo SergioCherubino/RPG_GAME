@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <title>RPG Map Editor</title>
+        <link rel="stylesheet" href="editor.css">
+    </head>
+    <body>
+
+        <h1>RPG Dungeon</h1>
+        <button id="openMapBtn">Start Dungeon</button>
+        <button id="backBtn">⬅ Voltar</button>
+        <!-- =========================
+            BOARD VIEWPORT
+        ========================= -->
+        <div id="gameWrapper"> 
+            <div id="heroHUD">
+                <h2>Hero</h2>
+                <div class="hud-section">
+                    <strong>Class:</strong> <span id="hud-class">-</span><br>
+                    <strong>HP:</strong> <span id="hud-hp">0/0</span><br>
+                    <strong>Armor:</strong> <span id="hud-armor">0</span><br>
+                    <strong>Damage:</strong> <span id="hud-damage">0-0</span><br>
+                    <strong>Moves:</strong> <span id="hud-move">0</span>
+                </div>
+
+                <h3>Equipamentos</h3>
+
+                <div class="equipment">
+                    <div class="slot" data-slot="weapon">Weapon</div>
+                    <div class="slot" data-slot="armor">Armor</div>
+                    <div class="slot" data-slot="shield">Shield</div>
+                </div>
+
+                <div id="potionSlot" class="slot potion-slot">
+                    <img src="Assets/items/potion.png" />
+                    <span id="potionCount">0</span>
+                </div>
+            </div>
+            <div id="board"></div>
+            <div id="inventoryHud">
+                <h3>Inventário</h3>
+                <div id="inventoryGrid"></div>
+                <div id="inventoryFooter">
+                    💰 Gold: <span id="goldAmount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+
+            <div id="consoleBox"></div>
+
+            <!-- Botões -->
+            <div class="right-buttons" style="display: flex; flex-direction: column; gap: 5px;">
+
+                <input type="file" id="openMapInput" accept=".json" style="display:none">
+                
+                <button id="attackBtn" style="display:none;">Attack</button>
+                <button id="equipBtn" style="display:none;">Equip</button>
+                <button id="unequipBtn" style="display:none;">Desequipar</button>
+                <button id="drinkBtn" style="display:none;">Drink</button>
+                <button id="endTurnBtn">End Turn</button>
+            </div>
+
+        </div>
+
+        <script type="module" src="./game_js/game.js"></script>
+    </body>
+</html>
