@@ -7,7 +7,8 @@ export const PlayerClasses = {
       armor: 10,
       damageMin: 1,
       damageMax: 4
-    }
+    },
+    visionRange: 5
   },
 
   rogue: {
@@ -18,7 +19,8 @@ export const PlayerClasses = {
       armor: 10,
       damageMin: 1,
       damageMax: 4
-    }
+    },
+    visionRange: 5
   },
 
   mage: {
@@ -29,6 +31,7 @@ export const PlayerClasses = {
       armor: 10,
       damageMin: 1,
       damageMax: 4
-    }
+    },
+    visionRange: 5
   }
 };

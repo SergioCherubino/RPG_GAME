@@ -483,3 +483,11 @@ h1 {
 #drinkBtn:hover {
   background: #0b4415;
 }
+
+.fog-hidden {
+  background: #000;
+}
+
+.fog-dark {
+  filter: brightness(0.3);
+}

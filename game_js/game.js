@@ -63,6 +63,13 @@ function handleOpenMap(e) {
       // 2️⃣ sobrescreve grid
       state.grid = data.grid;
 
+      for (let y = 0; y < state.grid.length; y++) {
+        for (let x = 0; x < state.grid[y].length; x++) {
+          state.grid[y][x].visible = false;
+          state.grid[y][x].explored = false;
+        }
+      }
+
       state.monsters = [];
 
       // percorre a grid e adiciona todos os monstros no state.monsters
@@ -99,6 +106,7 @@ function handleOpenMap(e) {
 
       // 4️⃣ spawn do herói
       spawnPlayer(1, 1);
+      updateHeroVision();
       updateHeroHUD();
 
       // 5️⃣ inicia sistema de turnos
@@ -240,6 +248,7 @@ export function tryMoveHero(x, y) {
   if (!valid) return;
 
   moveHeroTo(x, y);
+  updateHeroVision();
   updateHeroHUD();
   console.log(`🚶 Herói moveu para (${x}, ${y})`);
 }
@@ -397,6 +406,13 @@ function getNextMonsterMove(monster) {
 }
 export function monsterAct(monster, done) {
   console.log(`👹 Monstro ${monster.id || ""} começa o turno`);
+  const cell = state.grid[monster.y][monster.x];
+
+  if (!cell.visible) {
+    console.log("👁️ Monstro fora da visão — não age");
+    done();
+    return;
+  }
   monster.movementLeft = monster.movementRange;
 
   function step() {
@@ -763,3 +779,31 @@ drinkBtn.addEventListener("click", () => {
 
   drinkBtn.style.display = "none";
 });
+
+/* =========================
+    Visão do herói
+========================= */
+export function updateHeroVision() {
+  // limpa visão antiga
+  for (let y = 0; y < state.grid.length; y++) {
+    for (let x = 0; x < state.grid[y].length; x++) {
+      state.grid[y][x].visible = false;
+    }
+  }
+
+  const { x: hx, y: hy } = state.hero;
+  const range = state.hero.visionRange;
+
+  for (let y = hy - range; y <= hy + range; y++) {
+    for (let x = hx - range; x <= hx + range; x++) {
+      if (y < 0 || y >= state.grid.length) continue;
+      if (x < 0 || x >= state.grid[0].length) continue;
+
+      const dist = Math.abs(x - hx) + Math.abs(y - hy);
+      if (dist <= range) {
+        state.grid[y][x].visible = true;
+        state.grid[y][x].explored = true;
+      }
+    }
+  }
+}

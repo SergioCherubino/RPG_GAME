@@ -29,7 +29,9 @@ function createEmptyCellData() {
     object: null,
     objectRoot: null,
     monster: null,
-    walls: { top: "none", right: "none", bottom: "none", left: "none" }
+    walls: { top: "none", right: "none", bottom: "none", left: "none" },
+    visible: false,
+    explored: false
   };
 }
 

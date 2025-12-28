@@ -2,6 +2,7 @@
 import { renderBoard } from "../js/render.js";
 import { state } from "../js/state.js";
 import { PlayerClasses } from "./player.js";
+import { updateHeroVision } from "./game.js";
 
 export function spawnPlayer(x, y) {
   const selected = localStorage.getItem("playerCharacter");
@@ -22,9 +23,10 @@ export function spawnPlayer(x, y) {
     damageMin: def.attributes.damageMin,
     damageMax: def.attributes.damageMax,
     armor: def.attributes.armor, // útil se quiser usar fora de attributes
-    attackBonus: def.attributes.attackBonus || 0
+    attackBonus: def.attributes.attackBonus || 0,
+    visionRange: def.visionRange
   };
-
+  updateHeroVision();
 
   // marca no grid
   state.grid[y][x].hero = true;

@@ -18,6 +18,26 @@ export function renderBoard(board) {
       cell.innerHTML = "";
 
       // =========================
+      // FOG OF WAR
+      // =========================
+
+      // nunca explorado → totalmente oculto
+      if (!cellData.explored) {
+        cell.classList.add("fog-hidden");
+        cell.classList.remove("fog-dark");
+        continue; // NÃO renderiza mais nada nesse tile
+      }
+
+      // explorado mas fora da visão → escurecido
+      if (!cellData.visible) {
+        cell.classList.add("fog-dark");
+      } else {
+        cell.classList.remove("fog-dark");
+      }
+
+      cell.classList.remove("fog-hidden");
+
+      // =========================
       // TILE
       // =========================
       cell.style.backgroundImage = cellData.img
