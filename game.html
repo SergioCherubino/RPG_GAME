@@ -8,8 +8,7 @@
     <body>
 
         <h1>RPG Dungeon</h1>
-        <button id="openMapBtn">Start Dungeon</button>
-        <button id="backBtn">⬅ Voltar</button>
+
         <!-- =========================
             BOARD VIEWPORT
         ========================= -->
@@ -39,7 +38,6 @@
             </div>
             <div id="board"></div>
             <div id="inventoryHud">
-                <h3>Inventário</h3>
                 <div id="inventoryGrid"></div>
                 <div id="inventoryFooter">
                     💰 Gold: <span id="goldAmount">0</span>
@@ -64,7 +62,8 @@
             </div>
 
         </div>
-
+        <button id="openMapBtn">Start Dungeon</button>
+        <button id="backBtn">⬅ Voltar</button>
         <script type="module" src="./game_js/game.js"></script>
     </body>
 </html>
