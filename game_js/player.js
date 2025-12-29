@@ -2,6 +2,9 @@ export const PlayerClasses = {
   warrior: {
     sprite: "warrior.png",
     movementRange: 3,
+    level: 1,
+    currentXp: 0,
+    xpToNextLevel: 1000,
     attributes: {
       hp: 20,
       armor: 10,

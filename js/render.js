@@ -20,22 +20,29 @@ export function renderBoard(board) {
       // =========================
       // FOG OF WAR
       // =========================
+      const isEditor = state.mode === "editor";
 
-      // nunca explorado → totalmente oculto
-      if (!cellData.explored) {
-        cell.classList.add("fog-hidden");
-        cell.classList.remove("fog-dark");
-        continue; // NÃO renderiza mais nada nesse tile
-      }
+      if (!isEditor) {
 
-      // explorado mas fora da visão → escurecido
-      if (!cellData.visible) {
-        cell.classList.add("fog-dark");
+        // nunca explorado → totalmente oculto
+        if (!cellData.explored) {
+          cell.classList.add("fog-hidden");
+          cell.classList.remove("fog-dark");
+          continue; // NÃO renderiza mais nada
+        }
+
+        // explorado mas fora da visão → escurecido
+        if (!cellData.visible) {
+          cell.classList.add("fog-dark");
+        } else {
+          cell.classList.remove("fog-dark");
+        }
+
       } else {
+        // editor → tudo visível
+        cell.classList.remove("fog-hidden");
         cell.classList.remove("fog-dark");
       }
-
-      cell.classList.remove("fog-hidden");
 
       // =========================
       // TILE

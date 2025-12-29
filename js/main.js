@@ -14,7 +14,7 @@ import {
 import { initIO } from "./io.js";
 
 const board = document.getElementById("board");
-
+state.mode = "editor";
 function handleCellAction(x, y, event) {
 
   // 🧱🚪 PRIORIDADE MÁXIMA

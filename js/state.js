@@ -1,4 +1,5 @@
 export const state = {
+  mode: "editor",
   selectedTile: null,
   selectedColor: "normal",
   selectedObject: null,

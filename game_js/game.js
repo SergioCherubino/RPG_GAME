@@ -10,11 +10,12 @@ const openMapBtn = document.getElementById("openMapBtn");
 const openMapInput = document.getElementById("openMapInput");
 const endTurnBtn = document.getElementById("endTurnBtn");
 
+openMapBtn.addEventListener("click", handleOpenMap);
+
+
 /* =========================
    UI
 ========================= */
-openMapBtn.addEventListener("click", () => openMapInput.click());
-openMapInput.addEventListener("change", handleOpenMap);
 
 board.addEventListener("click", e => {
   const cellEl = e.target.closest(".cell");
@@ -47,89 +48,88 @@ endTurnBtn.addEventListener("click", () => {
 /* =========================
    LOAD MAP
 ========================= */
-function handleOpenMap(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+async function handleOpenMap(e) {
 
-  const reader = new FileReader();
+  try {
+    const response = await fetch("/Maps/map.json");
 
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-
-      // 1️⃣ cria grid vazio
-      initGrid(board);
-
-      // 2️⃣ sobrescreve grid
-      state.grid = data.grid;
-
-      for (let y = 0; y < state.grid.length; y++) {
-        for (let x = 0; x < state.grid[y].length; x++) {
-          state.grid[y][x].visible = false;
-          state.grid[y][x].explored = false;
-        }
-      }
-
-      state.monsters = [];
-
-      // percorre a grid e adiciona todos os monstros no state.monsters
-      for (let y = 0; y < state.grid.length; y++) {
-        for (let x = 0; x < state.grid[y].length; x++) {
-          const cell = state.grid[y][x];
-          if (cell.monster) {
-            // garante que a propriedade monster seja um objeto válido
-            const monsterTemplate = Monsters[cell.monster.id];
-            const monster = {
-              id: cell.monster.id,
-              x,
-              y,
-              movementRange: monsterTemplate.movementRange || 3,
-              movementLeft: monsterTemplate.movementRange || 3,
-              attributes: { ...monsterTemplate.attributes },
-              currentHp: monsterTemplate.attributes.hp,
-              damageMin: monsterTemplate.attributes.damageMin,
-              damageMax: monsterTemplate.attributes.damageMax,
-              armor: monsterTemplate.attributes.armor,
-              gold: monsterTemplate.gold || 0,
-              attackBonus: monsterTemplate.attributes.attackBonus || 0
-            };
-            state.monsters.push(monster);
-            state.grid[y][x].monster = monster;
-          }
-        }
-      }
-      console.log("🧟 Monstros inicializados:", state.monsters);
-
-
-      // 3️⃣ render oficial
-      renderBoard(board);
-
-      // 4️⃣ spawn do herói
-      spawnPlayer(1, 1);
-      updateHeroVision();
-      updateHeroHUD();
-
-      // 5️⃣ inicia sistema de turnos
-      startTurnSystem();
-
-      initInventory();
-
-      addItemToInventory(items.sword);
-      addItemToInventory(items.plateArmor);
-      addItemToInventory(items.shield);
-
-      updatePotionUI();
-      updateGoldUI();
-
-      console.log("Mapa carregado com sucesso");
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao carregar mapa");
+    if (!response.ok) {
+      throw new Error("Não foi possível carregar o map.json");
     }
-  };
 
-  reader.readAsText(file);
-  openMapInput.value = "";
+    const data = await response.json();
+    // 1️⃣ cria grid vazio
+    initGrid(board);
+
+    // 2️⃣ sobrescreve grid
+    state.grid = data.grid;
+    state.mode = "game";
+
+    for (let y = 0; y < state.grid.length; y++) {
+      for (let x = 0; x < state.grid[y].length; x++) {
+        state.grid[y][x].visible = false;
+        state.grid[y][x].explored = false;
+      }
+    }
+
+    state.monsters = [];
+
+    // percorre a grid e adiciona todos os monstros no state.monsters
+    for (let y = 0; y < state.grid.length; y++) {
+      for (let x = 0; x < state.grid[y].length; x++) {
+        const cell = state.grid[y][x];
+        if (cell.monster) {
+          // garante que a propriedade monster seja um objeto válido
+          const monsterTemplate = Monsters[cell.monster.id];
+          const monster = {
+            id: cell.monster.id,
+            x,
+            y,
+            movementRange: monsterTemplate.movementRange || 3,
+            movementLeft: monsterTemplate.movementRange || 3,
+            attributes: { ...monsterTemplate.attributes },
+            currentHp: monsterTemplate.attributes.hp,
+            damageMin: monsterTemplate.attributes.damageMin,
+            damageMax: monsterTemplate.attributes.damageMax,
+            armor: monsterTemplate.attributes.armor,
+            gold: monsterTemplate.gold || 0,
+            attackBonus: monsterTemplate.attributes.attackBonus || 0,
+            xp: monsterTemplate.experience || 0
+          };
+          state.monsters.push(monster);
+          state.grid[y][x].monster = monster;
+        }
+      }
+    }
+    console.log("🧟 Monstros inicializados:", state.monsters);
+
+
+    // 3️⃣ render oficial
+    renderBoard(board);
+
+    // 4️⃣ spawn do herói
+    spawnPlayer(1, 1);
+    updateHeroVision();
+    updateHeroHUD();
+
+    // 5️⃣ inicia sistema de turnos
+    startTurnSystem();
+
+    initInventory();
+
+    addItemToInventory(items.sword);
+    addItemToInventory(items.plateArmor);
+    addItemToInventory(items.shield);
+
+    updatePotionUI();
+    updateGoldUI();
+
+    console.log("Mapa carregado com sucesso");
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao carregar mapa");
+  }
+  
 }
 
 /* =========================
@@ -163,7 +163,7 @@ function nextMonster() {
 
   const monster = state.monsters[monsterIndex];
 
-  if (!monster || monster.hp <= 0) {
+  if (!monster || monster.currentHp <= 0) {
     monsterIndex++;
     nextMonster();
     return;
@@ -199,7 +199,7 @@ function canHeroMoveTo(x, y) {
   if (x < 0 || x >= state.grid[0].length) return false;
 
   const cell = state.grid[y][x];
-  if (cell.color === "normal") return false;
+  if (cell.color === null) return false;
   if (cell.object) return false;
   if (cell.monster) return false;
   if (cell.hero) return false;
@@ -348,6 +348,8 @@ function attackMonster(monster) {
       heroGold += goldDrop;
       logMessage(`💰 ${goldDrop} gold collected`);
       updateGoldUI();
+      // ⭐ XP
+      gainXp(monster.xp);
     }
   } else {
       logMessage(`→ <span class="log-miss">${hero.type} MISS!</span>`);
@@ -374,7 +376,7 @@ function canMonsterMoveTo(x, y) {
   if (x < 0 || x >= state.grid[0].length) return false;
 
   const cell = state.grid[y][x];
-  if (cell.color === "normal") return false;
+  if (cell.color === null) return false;
   if (cell.object) return false;
   if (cell.monster) return false;
   if (cell.hero) return false;
@@ -517,6 +519,11 @@ export function updateHeroHUD() {
     document.getElementById("hud-armor").textContent = state.hero.attributes.armor;
     document.getElementById("hud-damage").textContent = `${state.hero.attributes.damageMin}-${state.hero.attributes.damageMax}`;
     document.getElementById("hud-move").textContent = state.hero.movementRange;
+    // 🆙 TÍTULO COM LEVEL
+    const title = document.getElementById("hud-hero-title");
+    if (title) {
+      title.textContent = `Lvl ${state.hero.level} Hero`;
+    }
 }
 
 /* =========================
@@ -807,3 +814,51 @@ export function updateHeroVision() {
     }
   }
 }
+
+/* =========================
+    XP & LEVEL SYSTEM
+========================= */
+
+function gainXp(amount) {
+  const hero = state.hero;
+
+  hero.currentXp += amount;
+  logMessage(`⭐ Gained ${amount} XP`);
+
+  while (hero.currentXp >= hero.xpToNextLevel) {
+    hero.currentXp -= hero.xpToNextLevel;
+    levelUp();
+  }
+
+  updateXpBar();
+}
+
+function levelUp() {
+  const hero = state.hero;
+
+  hero.level++;
+  hero.attributes.hp += 10;
+  hero.currentHp += 10;
+
+  hero.xpToNextLevel = 1000 * hero.level;
+
+  logMessage(`🆙 Level UP! You are now level ${hero.level}`);
+  logMessage(`❤️ Max HP increased to ${hero.attributes.hp}`);
+
+  updateHeroHUD();
+}
+
+function updateXpBar() {
+  const hero = state.hero;
+  const percent = Math.floor((hero.currentXp / hero.xpToNextLevel) * 100);
+
+  const bar = document.getElementById("xp-bar");
+  const container = document.getElementById("xp-container");
+
+  if (bar) bar.style.width = `${percent}%`;
+
+  if (container) {
+    container.title = `${percent}% (${hero.currentXp} / ${hero.xpToNextLevel} XP)`;
+  }
+}
+
