@@ -51,7 +51,7 @@ endTurnBtn.addEventListener("click", () => {
 async function handleOpenMap(e) {
 
   try {
-    const response = await fetch("/Maps/map.json");
+    const response = await fetch("./Maps/map.json");
 
     if (!response.ok) {
       throw new Error("Não foi possível carregar o map.json");
