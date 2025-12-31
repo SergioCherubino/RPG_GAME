@@ -27,7 +27,8 @@ export function spawnPlayer(x, y) {
     damageMax: def.attributes.damageMax,
     armor: def.attributes.armor, // útil se quiser usar fora de attributes
     attackBonus: def.attributes.attackBonus || 0,
-    visionRange: def.visionRange
+    visionRange: def.visionRange,
+    spells: def.spells ? structuredClone(def.spells) : null,
   };
   updateHeroVision();
 

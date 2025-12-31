@@ -44,6 +44,15 @@ export const tiles = {
       "Assets/objects/tiles/yellow/tile2.png",
       "Assets/objects/tiles/yellow/tile3.png",
       "Assets/objects/tiles/yellow/tile4.png"
+    ],
+    dirt: [
+      "Assets/objects/tiles/dirt.png"
+    ],
+    grass: [
+      "Assets/objects/tiles/grass.png"
+    ],
+    water: [
+      "Assets/objects/tiles/water.png"
     ]
   }
 };

@@ -9,6 +9,7 @@ const board = document.getElementById("board");
 const openMapBtn = document.getElementById("openMapBtn");
 const openMapInput = document.getElementById("openMapInput");
 const endTurnBtn = document.getElementById("endTurnBtn");
+const healBtn = document.getElementById("healBtn");
 
 openMapBtn.addEventListener("click", handleOpenMap);
 
@@ -179,6 +180,15 @@ function startHeroTurn() {
   state.turn = "hero";
   state.phase = "idle";
   state.hero.movementLeft = state.hero.movementRange;
+
+  // ⏳ reduz cooldown da magia
+  if (state.hero.type === "cleric") {
+    const heal = state.hero.spells.heal;
+    if (heal.currentCooldown > 0) {
+      heal.currentCooldown--;
+    }
+    updateHealButton();
+  }
 
   highlightHeroMoves();
   console.log("🎮 Turno do HERÓI");
@@ -862,3 +872,68 @@ function updateXpBar() {
   }
 }
 
+function updateHealButton() {
+  if (state.hero.type !== "cleric") {
+    healBtn.style.display = "none";
+    return;
+  }
+
+  const heal = state.hero.spells.heal;
+
+  healBtn.style.display = "inline-block";
+  healBtn.disabled = heal.currentCooldown > 0;
+
+  // 🧠 TOOLTIP (hover)
+  healBtn.title =
+    heal.currentCooldown > 0
+      ? `Heal (+10) — Cooldown: ${heal.currentCooldown}`
+      : "Heal (+10)";
+}
+
+healBtn.addEventListener("click", () => {
+  const hero = state.hero;
+  const healSpell = hero.spells.heal;
+
+  if (healSpell.currentCooldown > 0) return;
+  if (state.phase !== "idle") return;
+
+  let target = hero; // default: cura a si mesmo
+
+  if (selectedAlly) {
+    const dist =
+      Math.abs(selectedAlly.x - hero.x) +
+      Math.abs(selectedAlly.y - hero.y);
+
+    if (dist <= 5) {
+      target = selectedAlly;
+    } else {
+      logMessage("❌ Ally too far to heal");
+      return;
+    }
+  }
+
+  const healAmount = 10;
+  const before = target.currentHp;
+  const maxHp = target.attributes.hp;
+
+  target.currentHp = Math.min(before + healAmount, maxHp);
+  const healed = target.currentHp - before;
+
+  logMessage(`✨ Healed ${target.type} for ${healed} HP`);
+
+  // 🔒 regras do turno
+  hero.movementLeft = 0;
+  state.phase = "acted"; // não pode atacar
+  healSpell.currentCooldown = healSpell.cooldown;
+
+  updateHeroHUD();
+  updateHeroHpBubble();
+  updateHealButton();
+  clearHeroHighlights();
+});
+
+let selectedAlly = null;
+
+function selectAlly(hero) {
+  selectedAlly = hero;
+}

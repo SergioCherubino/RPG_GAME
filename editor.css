@@ -507,3 +507,30 @@ h1 {
   background: linear-gradient(90deg, #4caf50, #8bc34a);
   transition: width 0.3s ease;
 }
+
+.icon-btn {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.icon-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.heal-btn {
+  background-image: url("../Assets/spells/heal.png");
+}

@@ -26,15 +26,24 @@ export const PlayerClasses = {
     visionRange: 5
   },
 
-  mage: {
-    sprite: "mage.png",
+  cleric: {
+    sprite: "cleric.png",
     movementRange: 3,
     attributes: {
       hp: 12,
       armor: 10,
       damageMin: 1,
-      damageMax: 4
+      damageMax: 2
     },
-    visionRange: 5
+    visionRange: 5,
+    spells: {
+      heal: {
+        name: "Heal",
+        amount: 10,
+        range: 5,
+        cooldown: 5,
+        currentCooldown: 0
+      }
+    }
   }
 };
