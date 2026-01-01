@@ -474,7 +474,7 @@ function moveMonsterTo(monster, x, y) {
   renderBoard(board);
 }
 function attackHero(monster) {
-  const heroAC = state.hero.attributes.ac || 10; // Armor Class do herói, default 10
+  const heroAC = state.hero.attributes.armor || 10; // Armor Class do herói, default 10
   const attackRoll = Math.floor(Math.random() * 20) + 1 + (monster.attackBonus || 0);
 
   logMessage(`🎲 ${monster.id} attacks ${state.hero.type}: ${attackRoll} vs AC ${heroAC}`);

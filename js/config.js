@@ -67,5 +67,7 @@ export const objects = {
   throne: { w: 1, h: 1, img: "Assets/objects/throne.png" },
   weapon_rack: { w: 3, h: 1, img: "Assets/objects/weapon_rack.png" },
   torture_table: { w: 3, h: 2, img: "Assets/objects/torture_table.png" },
-  hole: { w: 1, h: 1, img: "Assets/objects/hole.png" }
+  hole: { w: 1, h: 1, img: "Assets/objects/hole.png" },
+  tree: { w: 2, h: 2, img: "Assets/objects/tree.png" },
+  rock: { w: 1, h: 1, img: "Assets/objects/rock.png" }
 };
