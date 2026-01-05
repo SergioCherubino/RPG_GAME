@@ -534,3 +534,31 @@ h1 {
 .heal-btn {
   background-image: url("../Assets/spells/heal.png");
 }
+
+.heal-effect {
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  overflow: visible;
+}
+
+.heal-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle, #d5db7c, #afd32e);
+  border-radius: 50%;
+  opacity: 0.9;
+  animation: healFloat 1s ease-out forwards;
+}
+
+@keyframes healFloat {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px) scale(0.3);
+    opacity: 0;
+  }
+}

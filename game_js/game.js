@@ -4,6 +4,8 @@ import { initGrid, getCell } from "../js/grid.js";
 import { spawnPlayer } from "../game_js/heroSpawn.js";
 import { Monsters } from "../game_js/monster.js";
 import { items } from "./items.js";
+import { playSound } from "../game_js/sound.js";
+
 
 const board = document.getElementById("board");
 const openMapBtn = document.getElementById("openMapBtn");
@@ -333,6 +335,7 @@ attackBtn.addEventListener("click", () => {
   updateHeroHUD()
   state.phase = "acted"; // marca que herói já atacou
   clearSelection();
+  clearHeroHighlights();
   renderBoard(board); // atualiza visual
 });
 
@@ -344,8 +347,9 @@ function attackMonster(monster) {
 
   logMessage(`🎲 ${hero.type} attacks ${monster.id}: ${attackRoll} vs AC ${monsterAC}`);
   if (attackRoll >= monsterAC) {
+    playSound("hit", 0.7);
     const damage = Math.floor(Math.random() * (hero.attributes.damageMax - hero.attributes.damageMin + 1)) + hero.attributes.damageMin;
-    monster.currentHp -= damage;
+    monster.currentHp -= damage;    
     logMessage(`→ <span class="log-hit">${hero.type} HIT!</span> ${damage} damage`);
 
     if (monster.currentHp <= 0) {
@@ -362,6 +366,7 @@ function attackMonster(monster) {
       gainXp(monster.xp);
     }
   } else {
+      playSound("miss", 0.7);
       logMessage(`→ <span class="log-miss">${hero.type} MISS!</span>`);
   }
 
@@ -480,11 +485,13 @@ function attackHero(monster) {
   logMessage(`🎲 ${monster.id} attacks ${state.hero.type}: ${attackRoll} vs AC ${heroAC}`);
 
   if (attackRoll >= heroAC) {
+    playSound("hit", 0.7);
     // ataque acerta → calcula dano
     const damage = Math.floor(Math.random() * (monster.damageMax - monster.damageMin + 1)) + monster.damageMin;
     state.hero.currentHp -= damage;
     logMessage(`→ <span class="log-hit">${monster.id} HIT!</span> ${damage} damage`);
   } else {
+    playSound("miss", 0.7);
     logMessage(`→ <span class="log-miss">${monster.id} MISS!</span>`);
   }
   updateHeroHpBubble();
@@ -920,6 +927,7 @@ healBtn.addEventListener("click", () => {
   const healed = target.currentHp - before;
 
   logMessage(`✨ Healed ${target.type} for ${healed} HP`);
+  playHealEffect(target);
 
   // 🔒 regras do turno
   hero.movementLeft = 0;
@@ -936,4 +944,36 @@ let selectedAlly = null;
 
 function selectAlly(hero) {
   selectedAlly = hero;
+}
+
+const healSfx = new Audio("Assets/spells/heal.mp3");
+healSfx.volume = 0.6;
+
+function playHealEffect(unit) {
+  const cell = getCell(board, unit.x, unit.y);
+  if (!cell) return;
+
+  playSound("heal");
+
+  const effect = document.createElement("div");
+  effect.className = "heal-effect";
+  cell.appendChild(effect);
+
+  const PARTICLES = 24;
+
+  for (let i = 0; i < PARTICLES; i++) {
+    const p = document.createElement("div");
+    p.className = "heal-particle";
+
+    p.style.left = `${Math.random() * 32}px`;
+    p.style.top = `${Math.random() * 32}px`;
+    p.style.animationDelay = `${Math.random() * 0.2}s`;
+
+    effect.appendChild(p);
+  }
+
+  // remove depois da animação
+  setTimeout(() => {
+    effect.remove();
+  }, 1200);
 }
