@@ -25,10 +25,12 @@ export function spawnPlayer(x, y) {
     currentHp: def.attributes.hp,
     damageMin: def.attributes.damageMin,
     damageMax: def.attributes.damageMax,
-    armor: def.attributes.armor, // útil se quiser usar fora de attributes
+    armor: def.attributes.armor,
     attackBonus: def.attributes.attackBonus || 0,
     visionRange: def.visionRange,
     spells: def.spells ? structuredClone(def.spells) : null,
+    direction: def.direction,
+    isWalking: def.isWalking
   };
   updateHeroVision();
 

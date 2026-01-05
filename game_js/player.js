@@ -1,6 +1,7 @@
 export const PlayerClasses = {
   warrior: {
-    sprite: "warrior.png",
+    spriteIdle: "warrior.png",
+    spriteWalk: "warrior.gif",
     movementRange: 3,
     level: 1,
     currentXp: 0,
@@ -11,7 +12,9 @@ export const PlayerClasses = {
       damageMin: 1,
       damageMax: 4
     },
-    visionRange: 5
+    visionRange: 5,
+    direction: "left",
+    isWalking: false
   },
 
   rogue: {

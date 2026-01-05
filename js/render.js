@@ -114,8 +114,6 @@ export function renderBoard(board) {
         }
       }
 
-
-
       // =========================
       // HERO
       // =========================
@@ -124,20 +122,33 @@ export function renderBoard(board) {
         const def = PlayerClasses[state.hero.id];
         if (!def) continue;
 
-        const img = document.createElement("img");
-        img.src = `Assets/Sprites/${def.sprite}`;
-        img.className = "map-hero";
-        img.style.zIndex = 30;
-        img.style.pointerEvents = "none";
-        cell.appendChild(img);
+        const entity = document.createElement("div");
+        entity.className = "entity hero";
+        entity.style.position = "absolute";
+        entity.style.left = "0";
+        entity.style.bottom = "0";
+        entity.style.width = `${TILE_SIZE}px`;
+        entity.style.height = `${TILE_SIZE * 1.5}px`;
+        entity.style.zIndex = 30;
+        entity.style.pointerEvents = "none";
 
-        // 🩸 HP BUBBLE
+        const img = document.createElement("img");
+        const sprite = state.hero.isWalking
+          ? def.spriteWalk
+          : def.spriteIdle;
+
+        img.src = `Assets/Sprites/${sprite}`;
+        img.className = `map-hero ${state.hero.direction || "left"}`;
+
+        entity.appendChild(img);
+        cell.appendChild(entity);
+
         const hpBubble = document.createElement("div");
         hpBubble.className = "hp-bubble";
         hpBubble.textContent = state.hero.currentHp;
-        hpBubble.style.zIndex = 30;
-        cell.appendChild(hpBubble);
+        entity.appendChild(hpBubble);
       }
+
     }
   }
 }

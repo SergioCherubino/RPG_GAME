@@ -5,7 +5,7 @@ import { spawnPlayer } from "../game_js/heroSpawn.js";
 import { Monsters } from "../game_js/monster.js";
 import { items } from "./items.js";
 import { playSound } from "../game_js/sound.js";
-
+import { TILE_SIZE } from "../js/config.js";
 
 const board = document.getElementById("board");
 const openMapBtn = document.getElementById("openMapBtn");
@@ -235,15 +235,16 @@ function getHeroAdjacentMoves() {
   return moves;
 }
 
+let heroMoveMap = new Map();
+
 function highlightHeroMoves() {
   clearHeroHighlights();
+  heroMoveMap = getHeroReachableTiles();
 
-  const moves = getHeroAdjacentMoves();
-
-  for (const m of moves) {
-    const cell = getCell(board, m.x, m.y);
+  heroMoveMap.forEach(tile => {
+    const cell = getCell(board, tile.x, tile.y);
     if (cell) cell.classList.add("movable-tile");
-  }
+  });
 }
 
 function clearHeroHighlights() {
@@ -254,15 +255,69 @@ function clearHeroHighlights() {
 export function tryMoveHero(x, y) {
   if (state.turn !== "hero") return;
   if (state.phase !== "idle") return;
-  if (state.hero.movementLeft <= 0) return;
 
-  const valid = getHeroAdjacentMoves().some(m => m.x === x && m.y === y);
-  if (!valid) return;
+  const key = `${x},${y}`;
+  const target = heroMoveMap.get(key);
+  if (!target) return;
 
-  moveHeroTo(x, y);
-  updateHeroVision();
-  updateHeroHUD();
-  console.log(`🚶 Herói moveu para (${x}, ${y})`);
+  moveHeroAlongPath(target.path);
+}
+
+function moveHeroAlongPath(path) {
+  if (!path.length) return;
+
+  state.phase = "acting";
+  clearHeroHighlights();
+  state.hero.isWalking = true;
+
+  let stepIndex = 0;
+
+  function step() {
+    const next = path[stepIndex];
+    const from = { x: state.hero.x, y: state.hero.y };
+
+    // direção
+    if (next.x > from.x) state.hero.direction = "right";
+    else if (next.x < from.x) state.hero.direction = "left";
+
+    const cell = getCell(board, from.x, from.y);
+    const entity = cell?.querySelector(".entity.hero");
+    if (!entity) return;
+
+    const dx = (next.x - from.x) * TILE_SIZE;
+    const dy = (from.y - next.y) * TILE_SIZE;
+
+    // anima visual
+    entity.style.transform = `translate(${dx}px, ${dy}px)`;
+
+    setTimeout(() => {
+      // atualiza lógica APÓS animação
+      state.grid[from.y][from.x].hero = false;
+
+      state.hero.x = next.x;
+      state.hero.y = next.y;
+      state.hero.movementLeft--;
+
+      state.grid[next.y][next.x].hero = true;
+
+      renderBoard(board);
+      updateHeroVision();
+      updateHeroHUD();
+
+      stepIndex++;
+
+      if (stepIndex < path.length && state.hero.movementLeft > 0) {
+        step();
+      } else {
+        state.hero.isWalking = false;
+        renderBoard(board);
+        state.phase = "idle";
+        highlightHeroMoves();
+      }
+    }, 150);
+  }
+
+  step();
 }
 
 function moveHeroTo(x, y) {
@@ -976,4 +1031,82 @@ function playHealEffect(unit) {
   setTimeout(() => {
     effect.remove();
   }, 1200);
+}
+
+function getHeroReachableTiles() {
+  const start = { x: state.hero.x, y: state.hero.y };
+  const maxSteps = state.hero.movementLeft;
+
+  const visited = new Set();
+  const reachable = new Map();
+
+  const queue = [{
+    x: start.x,
+    y: start.y,
+    steps: 0,
+    path: []
+  }];
+
+  visited.add(`${start.x},${start.y}`);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+
+    for (const d of directions) {
+      const nx = current.x + d.x;
+      const ny = current.y + d.y;
+      const key = `${nx},${ny}`;
+
+      if (visited.has(key)) continue;
+      if (!canHeroMoveTo(nx, ny)) continue;
+
+      const nextSteps = current.steps + 1;
+      if (nextSteps > maxSteps) continue;
+
+      const newPath = [...current.path, { x: nx, y: ny }];
+
+      visited.add(key);
+      reachable.set(key, {
+        x: nx,
+        y: ny,
+        path: newPath
+      });
+
+      queue.push({
+        x: nx,
+        y: ny,
+        steps: nextSteps,
+        path: newPath
+      });
+    }
+  }
+
+  return reachable;
+}
+
+function getHeroImage() {
+  const cell = getCell(board, state.hero.x, state.hero.y);
+  return cell?.querySelector(".hero");
+}
+
+function setHeroDirection(from, to) {
+  const img = getHeroImage();
+  if (!img) return;
+
+  img.classList.remove("left", "right");
+
+  if (to.x > from.x) img.classList.add("right");
+  else if (to.x < from.x) img.classList.add("left");
+}
+
+function setHeroWalking(isWalking) {
+  const img = getHeroImage();
+  if (!img) return;
+
+  img.classList.toggle("walking", isWalking);
+}
+
+function updateHeroDirection(from, to) {
+  if (to.x > from.x) state.hero.direction = "right";
+  else if (to.x < from.x) state.hero.direction = "left";
 }
