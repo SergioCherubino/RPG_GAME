@@ -6,7 +6,7 @@ body {
 #city {
   width: 100vw;
   height: 100vh;
-  background: url("assets/city.png") center/cover no-repeat;
+  background: url("./Assets/city.png") center/cover no-repeat;
   position: relative;
 }
 
