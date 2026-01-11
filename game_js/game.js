@@ -1,11 +1,13 @@
 import { state } from "../js/state.js";
 import { renderBoard } from "../js/render.js";
-import { initGrid, getCell } from "../js/grid.js";
+import { initGrid, getCell, hasWallBetween, openDoorBothSides } from "../js/grid.js";
 import { spawnPlayer } from "../game_js/heroSpawn.js";
 import { Monsters } from "../game_js/monster.js";
 import { items } from "./items.js";
 import { playSound } from "../game_js/sound.js";
-
+import { playBGM } from "../game_js/music.js";
+import { normalizeWalls } from "../js/walls.js";
+import { tryDropItem } from "./loot.js"; 
 
 const board = document.getElementById("board");
 const openMapBtn = document.getElementById("openMapBtn");
@@ -14,6 +16,21 @@ const endTurnBtn = document.getElementById("endTurnBtn");
 const healBtn = document.getElementById("healBtn");
 
 openMapBtn.addEventListener("click", handleOpenMap);
+
+/* =========================
+   AUTO LOAD MAP FROM QUEST
+========================= */
+window.addEventListener("DOMContentLoaded", () => {
+  const params = new URLSearchParams(window.location.search);
+  const mapFromQuest = params.get("map");
+
+  if (mapFromQuest) {
+    handleOpenMap(mapFromQuest);
+
+    // opcional: limpa a URL para evitar reload duplo
+    window.history.replaceState({}, document.title, "game.html");
+  }
+});
 
 
 /* =========================
@@ -37,6 +54,14 @@ board.addEventListener("click", e => {
     return; // NÃO tenta mover herói
   }
 
+  // 🚪 Clique em porta adjacente
+  if (tryOpenAdjacentDoor(x, y)) {
+    updateHeroVision();     // 👁️ recalcula visão
+    highlightHeroMoves();   // 🔦 recalcula movimentos
+    renderBoard(board);     // 🎨 redesenha tudo
+    return;
+  }
+
   // Caso contrário, tenta mover herói
   tryMoveHero(x, y);
 });
@@ -54,7 +79,7 @@ endTurnBtn.addEventListener("click", () => {
 async function handleOpenMap(e) {
 
   try {
-    const response = await fetch("./Maps/map.json");
+    const response = await fetch("./Maps/dungeon_map.json");
 
     if (!response.ok) {
       throw new Error("Não foi possível carregar o map.json");
@@ -67,6 +92,8 @@ async function handleOpenMap(e) {
     // 2️⃣ sobrescreve grid
     state.grid = data.grid;
     state.mode = "game";
+
+    normalizeWalls();
 
     for (let y = 0; y < state.grid.length; y++) {
       for (let x = 0; x < state.grid[y].length; x++) {
@@ -88,16 +115,21 @@ async function handleOpenMap(e) {
             id: cell.monster.id,
             x,
             y,
+            spawnX: x,
+            spawnY: y,
             movementRange: monsterTemplate.movementRange || 3,
             movementLeft: monsterTemplate.movementRange || 3,
             attributes: { ...monsterTemplate.attributes },
+            maxHp: monsterTemplate.attributes.hp,
             currentHp: monsterTemplate.attributes.hp,
             damageMin: monsterTemplate.attributes.damageMin,
             damageMax: monsterTemplate.attributes.damageMax,
             armor: monsterTemplate.attributes.armor,
             gold: monsterTemplate.gold || 0,
             attackBonus: monsterTemplate.attributes.attackBonus || 0,
-            xp: monsterTemplate.experience || 0
+            xp: monsterTemplate.experience || 0,
+            dead: false,
+            respawnTurnsLeft: 0
           };
           state.monsters.push(monster);
           state.grid[y][x].monster = monster;
@@ -111,7 +143,11 @@ async function handleOpenMap(e) {
     renderBoard(board);
 
     // 4️⃣ spawn do herói
-    spawnPlayer(1, 1);
+    spawnPlayer(24, 1);
+    centerCameraOnHero();
+
+    playBGM("Assets/sfx/Tenebrous Depths.mp3", 0.4);
+
     updateHeroVision();
     updateHeroHUD();
 
@@ -179,9 +215,12 @@ function nextMonster() {
 }
 
 function startHeroTurn() {
+  updateMonsterRespawns();
+
   state.turn = "hero";
   state.phase = "idle";
   state.hero.movementLeft = state.hero.movementRange;
+  updateDoorsTurn();
 
   // ⏳ reduz cooldown da magia
   if (state.hero.type === "cleric") {
@@ -206,7 +245,7 @@ const directions = [
   { x: 1, y: 0 },
 ];
 
-function canHeroMoveTo(x, y) {
+function canHeroMoveTo(x, y, fromX, fromY) {
   if (y < 0 || y >= state.grid.length) return false;
   if (x < 0 || x >= state.grid[0].length) return false;
 
@@ -216,6 +255,8 @@ function canHeroMoveTo(x, y) {
   if (cell.monster) return false;
   if (cell.hero) return false;
 
+  if (hasWallBetween(fromX, fromY, x, y)) return false;
+  
   return true;
 }
 
@@ -229,21 +270,24 @@ function getHeroAdjacentMoves() {
     const nx = x + d.x;
     const ny = y + d.y;
 
-    if (canHeroMoveTo(nx, ny)) moves.push({ x: nx, y: ny });
+    if (canHeroMoveTo(nx, ny, x, y)) {
+      moves.push({ x: nx, y: ny });
+    }
   }
 
   return moves;
 }
 
+let heroMoveMap = new Map();
+
 function highlightHeroMoves() {
   clearHeroHighlights();
+  heroMoveMap = getHeroReachableTiles();
 
-  const moves = getHeroAdjacentMoves();
-
-  for (const m of moves) {
-    const cell = getCell(board, m.x, m.y);
+  heroMoveMap.forEach(tile => {
+    const cell = getCell(board, tile.x, tile.y);
     if (cell) cell.classList.add("movable-tile");
-  }
+  });
 }
 
 function clearHeroHighlights() {
@@ -251,18 +295,54 @@ function clearHeroHighlights() {
     .forEach(c => c.classList.remove("movable-tile"));
 }
 
+function moveHeroAlongPath(path) {
+  if (path.length === 0) return;
+
+  state.phase = "acting";
+  clearHeroHighlights();
+
+  let stepIndex = 0;
+
+  function step() {
+    const next = path[stepIndex];
+
+    // limpa posição anterior
+    state.grid[state.hero.y][state.hero.x].hero = false;
+
+    // move
+    state.hero.x = next.x;
+    state.hero.y = next.y;
+    state.hero.movementLeft--;
+
+    state.grid[next.y][next.x].hero = true;
+
+    renderBoard(board);
+    updateHeroVision();
+    updateHeroHUD();
+    centerCameraOnHero();
+
+    stepIndex++;
+
+    if (stepIndex < path.length && state.hero.movementLeft > 0) {
+      setTimeout(step, 150); // velocidade da caminhada
+    } else {
+      state.phase = "idle";
+      highlightHeroMoves();
+    }
+  }
+
+  step();
+}
+
 export function tryMoveHero(x, y) {
   if (state.turn !== "hero") return;
   if (state.phase !== "idle") return;
-  if (state.hero.movementLeft <= 0) return;
 
-  const valid = getHeroAdjacentMoves().some(m => m.x === x && m.y === y);
-  if (!valid) return;
+  const key = `${x},${y}`;
+  const target = heroMoveMap.get(key);
+  if (!target) return;
 
-  moveHeroTo(x, y);
-  updateHeroVision();
-  updateHeroHUD();
-  console.log(`🚶 Herói moveu para (${x}, ${y})`);
+  moveHeroAlongPath(target.path);
 }
 
 function moveHeroTo(x, y) {
@@ -341,6 +421,11 @@ attackBtn.addEventListener("click", () => {
 
 function attackMonster(monster) {
   const hero = state.hero;
+  if (hasWallBetween(hero.x, hero.y, monster.x, monster.y)) {
+    logMessage("🧱 Wall blocks the attack!");
+    playSound("miss", 0.6);
+    return;
+  }
   const monsterAC = monster.armor || 10; // Armor do monstro
   const attackBonus = hero.attackBonus || 0; // ataque do herói
   const attackRoll = Math.floor(Math.random() * 20) + 1 + attackBonus;
@@ -353,9 +438,14 @@ function attackMonster(monster) {
     logMessage(`→ <span class="log-hit">${hero.type} HIT!</span> ${damage} damage`);
 
     if (monster.currentHp <= 0) {
-      logMessage(`☠️ ${monster.id} slain!`);
+      monster.dead = true;
+      monster.respawnTurnsLeft = 40;
+
+      // remove do grid, mas mantém no state.monsters
       state.grid[monster.y][monster.x].monster = false;
-      state.monsters = state.monsters.filter(m => m !== monster);
+
+      logMessage(`☠️ ${monster.id} slain! Respawning in 10 turns`);
+
 
       // 💰 DROP DE GOLD
       const goldDrop = Math.floor(Math.random() * monster.gold) + 1;
@@ -364,7 +454,13 @@ function attackMonster(monster) {
       updateGoldUI();
       // ⭐ XP
       gainXp(monster.xp);
-    }
+
+      const droppedItem = tryDropItem();
+      if (droppedItem) {
+        addItemToInventory(droppedItem);
+        logMessage(`🎁 Dropped: <span class="log-hit">${droppedItem.name}</span>`);
+      }
+        }
   } else {
       playSound("miss", 0.7);
       logMessage(`→ <span class="log-miss">${hero.type} MISS!</span>`);
@@ -386,7 +482,7 @@ function updateMonsterHpBubble(monster) {
 /* =========================
    Movimento dos monstros
 ========================= */
-function canMonsterMoveTo(x, y) {
+function canMonsterMoveTo(x, y, fromX, fromY) {
   if (y < 0 || y >= state.grid.length) return false;
   if (x < 0 || x >= state.grid[0].length) return false;
 
@@ -395,6 +491,8 @@ function canMonsterMoveTo(x, y) {
   if (cell.object) return false;
   if (cell.monster) return false;
   if (cell.hero) return false;
+
+  if (hasWallBetween(fromX, fromY, x, y)) return false;
 
   return true;
 }
@@ -405,22 +503,87 @@ function getNextMonsterMove(monster) {
 
   const moves = [];
 
+  // Prioriza o eixo com maior distância
   if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx > 0 && canMonsterMoveTo(monster.x + 1, monster.y)) moves.push({ x: monster.x + 1, y: monster.y });
-    else if (dx < 0 && canMonsterMoveTo(monster.x - 1, monster.y)) moves.push({ x: monster.x - 1, y: monster.y });
-    
-    if (dy > 0 && canMonsterMoveTo(monster.x, monster.y + 1)) moves.push({ x: monster.x, y: monster.y + 1 });
-    else if (dy < 0 && canMonsterMoveTo(monster.x, monster.y - 1)) moves.push({ x: monster.x, y: monster.y - 1 });
-  } else {
-    if (dy > 0 && canMonsterMoveTo(monster.x, monster.y + 1)) moves.push({ x: monster.x, y: monster.y + 1 });
-    else if (dy < 0 && canMonsterMoveTo(monster.x, monster.y - 1)) moves.push({ x: monster.x, y: monster.y - 1 });
 
-    if (dx > 0 && canMonsterMoveTo(monster.x + 1, monster.y)) moves.push({ x: monster.x + 1, y: monster.y });
-    else if (dx < 0 && canMonsterMoveTo(monster.x - 1, monster.y)) moves.push({ x: monster.x - 1, y: monster.y });
+    // Horizontal primeiro
+    if (dx > 0 && canMonsterMoveTo(
+      monster.x + 1,
+      monster.y,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x + 1, y: monster.y });
+
+    } else if (dx < 0 && canMonsterMoveTo(
+      monster.x - 1,
+      monster.y,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x - 1, y: monster.y });
+    }
+
+    // Vertical como alternativa
+    if (dy > 0 && canMonsterMoveTo(
+      monster.x,
+      monster.y + 1,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x, y: monster.y + 1 });
+
+    } else if (dy < 0 && canMonsterMoveTo(
+      monster.x,
+      monster.y - 1,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x, y: monster.y - 1 });
+    }
+
+  } else {
+
+    // Vertical primeiro
+    if (dy > 0 && canMonsterMoveTo(
+      monster.x,
+      monster.y + 1,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x, y: monster.y + 1 });
+
+    } else if (dy < 0 && canMonsterMoveTo(
+      monster.x,
+      monster.y - 1,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x, y: monster.y - 1 });
+    }
+
+    // Horizontal como alternativa
+    if (dx > 0 && canMonsterMoveTo(
+      monster.x + 1,
+      monster.y,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x + 1, y: monster.y });
+
+    } else if (dx < 0 && canMonsterMoveTo(
+      monster.x - 1,
+      monster.y,
+      monster.x,
+      monster.y
+    )) {
+      moves.push({ x: monster.x - 1, y: monster.y });
+    }
   }
 
   return moves[0] || null;
 }
+
 export function monsterAct(monster, done) {
   console.log(`👹 Monstro ${monster.id || ""} começa o turno`);
   const cell = state.grid[monster.y][monster.x];
@@ -434,7 +597,15 @@ export function monsterAct(monster, done) {
 
   function step() {
     // Se está adjacente ao herói → ataque
-    if (isAdjacent(monster, state.hero)) {
+    if (
+      isAdjacent(monster, state.hero) &&
+      !hasWallBetween(
+        monster.x,
+        monster.y,
+        state.hero.x,
+        state.hero.y
+      )
+    ) {
       attackHero(monster); // use a versão D&D que calcula acerto/dano
       console.log(`👹 Monstro ${monster.id || ""} atacou o herói!`);
       done();
@@ -491,7 +662,7 @@ function attackHero(monster) {
     state.hero.currentHp -= damage;
     logMessage(`→ <span class="log-hit">${monster.id} HIT!</span> ${damage} damage`);
   } else {
-    playSound("miss", 0.7);
+    playSound("monster_miss", 0.7);
     logMessage(`→ <span class="log-miss">${monster.id} MISS!</span>`);
   }
   updateHeroHpBubble();
@@ -815,19 +986,63 @@ export function updateHeroVision() {
     }
   }
 
-  const { x: hx, y: hy } = state.hero;
+  const startX = state.hero.x;
+  const startY = state.hero.y;
   const range = state.hero.visionRange;
 
-  for (let y = hy - range; y <= hy + range; y++) {
-    for (let x = hx - range; x <= hx + range; x++) {
-      if (y < 0 || y >= state.grid.length) continue;
-      if (x < 0 || x >= state.grid[0].length) continue;
+  const visited = new Set();
+  const queue = [{
+    x: startX,
+    y: startY,
+    steps: 0
+  }];
 
-      const dist = Math.abs(x - hx) + Math.abs(y - hy);
-      if (dist <= range) {
-        state.grid[y][x].visible = true;
-        state.grid[y][x].explored = true;
-      }
+  visited.add(`${startX},${startY}`);
+
+  // o tile do herói sempre é visível
+  state.grid[startY][startX].visible = true;
+  state.grid[startY][startX].explored = true;
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+
+    const directions = [
+      { x: 1, y: 0 },
+      { x: -1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: -1 }
+    ];
+
+    for (const d of directions) {
+      const nx = current.x + d.x;
+      const ny = current.y + d.y;
+      const key = `${nx},${ny}`;
+
+      if (visited.has(key)) continue;
+      if (current.steps + 1 > range) continue;
+
+      // limites do mapa
+      if (ny < 0 || ny >= state.grid.length) continue;
+      if (nx < 0 || nx >= state.grid[0].length) continue;
+
+      const cell = state.grid[ny][nx];
+
+      // tile inexistente
+      if (cell.color === null) continue;
+
+      // 🧱 BLOQUEIO DE VISÃO POR PAREDE
+      if (hasWallBetween(current.x, current.y, nx, ny)) continue;
+
+      visited.add(key);
+
+      cell.visible = true;
+      cell.explored = true;
+
+      queue.push({
+        x: nx,
+        y: ny,
+        steps: current.steps + 1
+      });
     }
   }
 }
@@ -976,4 +1191,166 @@ function playHealEffect(unit) {
   setTimeout(() => {
     effect.remove();
   }, 1200);
+}
+
+function getHeroReachableTiles() {
+  const start = { x: state.hero.x, y: state.hero.y };
+  const maxSteps = state.hero.movementLeft;
+
+  const visited = new Set();
+  const reachable = new Map();
+
+  const queue = [{
+    x: start.x,
+    y: start.y,
+    steps: 0,
+    path: []
+  }];
+
+  visited.add(`${start.x},${start.y}`);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+
+    for (const d of directions) {
+      const nx = current.x + d.x;
+      const ny = current.y + d.y;
+      const key = `${nx},${ny}`;
+
+      if (visited.has(key)) continue;
+      if (!canHeroMoveTo(nx, ny, current.x, current.y)) continue;
+
+      const nextSteps = current.steps + 1;
+      if (nextSteps > maxSteps) continue;
+
+      const newPath = [...current.path, { x: nx, y: ny }];
+
+      visited.add(key);
+      reachable.set(key, {
+        x: nx,
+        y: ny,
+        path: newPath
+      });
+
+      queue.push({
+        x: nx,
+        y: ny,
+        steps: nextSteps,
+        path: newPath
+      });
+    }
+  }
+
+  return reachable;
+}
+
+function centerCameraOnHero() {
+  const viewboard = document.getElementById("viewboard");
+  const board = document.getElementById("board");
+
+  if (!viewboard || !state.hero) return;
+
+  const TILE_SIZE = 48;
+
+  const heroCenterX = state.hero.x * TILE_SIZE + TILE_SIZE / 2;
+  const heroCenterY = state.hero.y * TILE_SIZE + TILE_SIZE / 2;
+
+  const targetX = heroCenterX - viewboard.clientWidth / 2;
+  const targetY = heroCenterY - viewboard.clientHeight / 2;
+
+  const maxX = board.scrollWidth - viewboard.clientWidth;
+  const maxY = board.scrollHeight - viewboard.clientHeight;
+
+  viewboard.scrollLeft = Math.max(0, Math.min(targetX, maxX));
+  viewboard.scrollTop  = Math.max(0, Math.min(targetY, maxY));
+}
+
+export function updateDoorsTurn() {
+  let changed = false;
+
+  for (let y = 0; y < state.grid.length; y++) {
+    for (let x = 0; x < state.grid[y].length; x++) {
+      const walls = state.grid[y][x].walls;
+
+      for (const side in walls) {
+        const wall = walls[side];
+
+        if (!wall || wall.type !== "door") continue;
+        if (!wall.open) continue;
+
+        wall.openTurnsLeft--;
+
+        if (wall.openTurnsLeft <= 0) {
+          wall.open = false;
+          wall.openTurnsLeft = 0;
+          changed = true;
+        }
+      }
+    }
+  }
+
+  if (changed) {
+    updateHeroVision();
+    highlightHeroMoves();
+    renderBoard(board);
+  }
+}
+
+function tryOpenAdjacentDoor(x, y) {
+  const hx = state.hero.x;
+  const hy = state.hero.y;
+
+  if (Math.abs(x - hx) + Math.abs(y - hy) !== 1) return false;
+
+  const side = getWallSide(hx, hy, x, y);
+  const wall = state.grid[hy][hx].walls[side];
+
+  if (wall?.type === "door" && !wall.open) {
+    openDoorBothSides(hx, hy, side);
+    logMessage("🚪 Door opened");
+    return true;
+  }
+
+  return false;
+}
+
+function getWallSide(x1, y1, x2, y2) {
+  if (x2 === x1 + 1) return "right";
+  if (x2 === x1 - 1) return "left";
+  if (y2 === y1 + 1) return "bottom";
+  if (y2 === y1 - 1) return "top";
+}
+
+function updateMonsterRespawns() {
+  for (const monster of state.monsters) {
+    if (!monster.dead) continue;
+
+    monster.respawnTurnsLeft--;
+
+    if (monster.respawnTurnsLeft <= 0) {
+      tryRespawnMonster(monster);
+    }
+  }
+}
+
+function tryRespawnMonster(monster) {
+  const x = monster.spawnX;
+  const y = monster.spawnY;
+
+  const cell = state.grid[y][x];
+
+  // só respawna se o local estiver livre
+  if (cell.monster || cell.hero || cell.object) {
+    monster.respawnTurnsLeft = 1; // tenta de novo no próximo turno
+    return;
+  }
+
+  monster.dead = false;
+  monster.currentHp = monster.maxHp;
+  monster.x = x;
+  monster.y = y;
+
+  cell.monster = monster;
+
+  logMessage(`🧟 ${monster.id} has respawned`);
 }

@@ -2,6 +2,7 @@ const sounds = {
   heal: "Assets/sfx/heal.mp3",
   hit: "Assets/sfx/hit.mp3",
   miss: "Assets/sfx/miss.mp3",
+  monster_miss: "Assets/sfx/monster_miss.mp3",
   levelUp: "Assets/sfx/levelup.mp3",
 };
 

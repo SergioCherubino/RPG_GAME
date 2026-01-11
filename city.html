@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>City</title>
+  <link rel="stylesheet" href="city.css">
+</head>
+<body>
+
+<div id="city">
+
+  <!-- QUEST BOARD (área clicável invisível) -->
+  <div id="questBoard" class="hotspot"></div>
+
+  <!-- BLACKSMITH DOOR -->
+  <div id="blacksmithDoor" class="hotspot"></div>
+
+</div>
+
+<!-- QUEST WINDOW -->
+<div id="questWindow" class="window hidden">
+  <h2>Quests Disponíveis</h2>
+
+  <div class="quest">
+    <input type="radio" name="quest" value="dungeon" checked>
+    <span>🕷️ Dungeon</span>
+  </div>
+
+  <button id="startQuest">Iniciar Missão</button>
+  <button class="close">Fechar</button>
+</div>
+
+<!-- SHOP WINDOW -->
+<div id="shopWindow" class="window hidden">
+  <h2>Ferreiro</h2>
+
+  <div id="shopItems"></div>
+
+  <p>Gold: <span id="gold">100</span></p>
+
+  <button class="close">Fechar</button>
+</div>
+
+<script type="module" src="./game_js/city.js"></script>
+
+</body>
+</html>

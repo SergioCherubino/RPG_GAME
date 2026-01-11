@@ -25,11 +25,21 @@ export function getEdgeFromMouse(cell, event) {
 export function toggleBarrier(board, x, y, edge, type) {
   const cellData = state.grid[y][x];
 
-  // alterna wall / door / none
-  cellData.walls[edge] =
-    cellData.walls[edge] === type ? "none" : type;
+  const current = cellData.walls[edge]?.type ?? "none";
 
-  // posição vizinha
+  // alterna
+  if (current === type) {
+    cellData.walls[edge] = { type: "none" };
+  } else if (type === "wall") {
+    cellData.walls[edge] = { type: "wall" };
+  } else if (type === "door") {
+    cellData.walls[edge] = {
+      type: "door",
+      open: false,
+      openTurnsLeft: 0
+    };
+  }
+
   const dx = edge === "left" ? -1 : edge === "right" ? 1 : 0;
   const dy = edge === "top" ? -1 : edge === "bottom" ? 1 : 0;
 
@@ -43,7 +53,6 @@ export function toggleBarrier(board, x, y, edge, type) {
   const nx = x + dx;
   const ny = y + dy;
 
-  // espelha no tile vizinho
   if (state.grid[ny] && state.grid[ny][nx]) {
     state.grid[ny][nx].walls[opposite] = cellData.walls[edge];
     renderWalls(board, nx, ny);
@@ -59,21 +68,64 @@ export function renderWalls(board, x, y) {
   const cell = getCell(board, x, y);
   if (!cell) return;
 
-  // remove paredes antigas
+  // remove paredes / portas antigas
   cell.querySelectorAll(".wall, .door").forEach(el => el.remove());
 
   const walls = state.grid[y][x].walls;
 
   for (const side in walls) {
-    if (walls[side] === "none") continue;
+    const wall = walls[side];
+
+    if (!wall || wall.type === "none") continue;
 
     const el = document.createElement("div");
-    el.className = `
-      ${walls[side]} 
-      ${side} 
-      ${side === "top" || side === "bottom" ? "horizontal" : "vertical"}
-    `.trim();
+
+    // wall ou door
+    el.classList.add(wall.type);
+
+    // lado
+    el.classList.add(side);
+
+    // orientação
+    el.classList.add(
+      side === "top" || side === "bottom"
+        ? "horizontal"
+        : "vertical"
+    );
+
+    // estado da porta
+    if (wall.type === "door") {
+      el.classList.add(wall.open ? "open" : "closed");
+    }
 
     cell.appendChild(el);
   }
 }
+
+export function normalizeWalls() {
+  for (let y = 0; y < state.grid.length; y++) {
+    for (let x = 0; x < state.grid[y].length; x++) {
+      const walls = state.grid[y][x].walls;
+
+      for (const side in walls) {
+        const w = walls[side];
+
+        // já normalizado
+        if (typeof w === "object") continue;
+
+        if (w === "wall") {
+          walls[side] = { type: "wall" };
+        } else if (w === "door") {
+          walls[side] = {
+            type: "door",
+            open: false,
+            openTurnsLeft: 0
+          };
+        } else {
+          walls[side] = { type: "none" };
+        }
+      }
+    }
+  }
+}
+

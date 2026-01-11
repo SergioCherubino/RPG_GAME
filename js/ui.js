@@ -4,8 +4,6 @@ function clearSelections() {
   state.selectedTile = null;
   state.selectedObject = null;
   state.selectedMonster = null;
-  state.wallMode = false;
-  state.doorMode = false;
 
   // limpa UI
   document
@@ -24,8 +22,6 @@ function clearSelections() {
   const wallBtn = document.getElementById("wallBtn");
   const doorBtn = document.getElementById("doorBtn");
 
-  if (wallBtn) wallBtn.textContent = "🧱 Modo Parede: OFF";
-  if (doorBtn) doorBtn.textContent = "🚪 Modo Porta: OFF";
 }
 
 export function initTilePalette() {

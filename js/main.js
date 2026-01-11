@@ -30,6 +30,7 @@ function handleCellAction(x, y, event) {
       edge,
       state.wallMode ? "wall" : "door"
     );
+    renderBoard(board);
     return;
   }
 

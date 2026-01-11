@@ -7,16 +7,18 @@ export const items = {
         damageMin: 2,
         damageMax: 4,
         icon: "sword.png",
-        durability: 20
+        durability: 20,
+        price: 500
     },
     mace: {
         id: "mace",
         name: "Mace",
         slot: "weapon",
-        damageMin: 2,
-        damageMax: 4,
+        damageMin: 1,
+        damageMax: 3,
         icon: "mace.png",
-        durability: 20
+        durability: 20,
+        price: 400
     },
     axe: {
         id: "axe",
@@ -25,16 +27,18 @@ export const items = {
         damageMin: 2,
         damageMax: 4,
         icon: "axe.png",
-        durability: 20
+        durability: 20,
+        price: 500
     },
     dagger: {
         id: "dagger",
         name: "Dagger",
         slot: "weapon",
-        damageMin: 2,
-        damageMax: 4,
+        damageMin: 1,
+        damageMax: 2,
         icon: "dagger.png",
-        durability: 20
+        durability: 20,
+        price: 300
     },
     plateArmor: {
         id: "plateArmor",
@@ -42,7 +46,8 @@ export const items = {
         slot: "armor",
         armor: 4,
         icon: "plate_armor.png",
-        durability: 20
+        durability: 20,
+        price: 1200
     },
     leatherArmor: {
         id: "leatherArmor",
@@ -50,7 +55,8 @@ export const items = {
         slot: "armor",
         armor: 2,
         icon: "leather_armor.png",
-        durability: 20
+        durability: 20,
+        price: 900
     },
     clothArmor: {
         id: "clothArmor",
@@ -58,7 +64,8 @@ export const items = {
         slot: "armor",
         armor: 1,
         icon: "cloth_armor.png",
-        durability: 20
+        durability: 20,
+        price: 750
     },
     shield: {
         id: "shield",
@@ -66,6 +73,7 @@ export const items = {
         slot: "shield",
         armor: 1,
         icon: "shield.png",
-        durability: 20
+        durability: 20,
+        price: 500
     }
 };
