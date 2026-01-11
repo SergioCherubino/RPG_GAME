@@ -46,5 +46,5 @@ function startGame() {
   // (opcional) guardar personagem
   localStorage.setItem("playerCharacter", selectedCharacter);
 
-  window.location.href = "city.html";
+  window.location.href = "./city.html";
 }
