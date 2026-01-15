@@ -1,4 +1,5 @@
 import { items } from "./items.js";
+import { playBGM } from "./music.js";
 
 let gold = 100;
 let inventory = []; // inventário simples por enquanto
@@ -11,6 +12,8 @@ const shopWindow = document.getElementById("shopWindow");
 
 const goldUI = document.getElementById("gold");
 const shopItemsDiv = document.getElementById("shopItems");
+
+playBGM("Assets/sfx/city_bgm.mp3", 0.5);
 
 /* =====================
    QUESTS

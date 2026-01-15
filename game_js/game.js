@@ -113,6 +113,8 @@ async function handleOpenMap(e) {
           const monsterTemplate = Monsters[cell.monster.id];
           const monster = {
             id: cell.monster.id,
+            type: monsterTemplate.type,
+            rangedRange: monsterTemplate.rangedRange,
             x,
             y,
             spawnX: x,
@@ -585,18 +587,28 @@ function getNextMonsterMove(monster) {
 }
 
 export function monsterAct(monster, done) {
-  console.log(`👹 Monstro ${monster.id || ""} começa o turno`);
   const cell = state.grid[monster.y][monster.x];
 
   if (!cell.visible) {
-    console.log("👁️ Monstro fora da visão — não age");
     done();
     return;
   }
+
   monster.movementLeft = monster.movementRange;
 
   function step() {
-    // Se está adjacente ao herói → ataque
+
+    // 🏹 ATAQUE À DISTÂNCIA (ARCHER)
+    if (
+      monster.type === "archer" &&
+      isInRangedRange(monster, state.hero, monster.rangedRange || 4)
+    ) {
+      attackHeroRanged(monster);
+      done();
+      return;
+    }
+
+    // ⚔️ ATAQUE CORPO A CORPO
     if (
       isAdjacent(monster, state.hero) &&
       !hasWallBetween(
@@ -606,13 +618,13 @@ export function monsterAct(monster, done) {
         state.hero.y
       )
     ) {
-      attackHero(monster); // use a versão D&D que calcula acerto/dano
+      attackHero(monster);
       console.log(`👹 Monstro ${monster.id || ""} atacou o herói!`);
       done();
       return;
     }
 
-    // Se ainda pode se mover → tenta se mover
+    // 🚶 MOVIMENTO
     if (monster.movementLeft > 0) {
       const nextMove = getNextMonsterMove(monster);
 
@@ -621,19 +633,16 @@ export function monsterAct(monster, done) {
         monster.movementLeft--;
         setTimeout(step, 200);
       } else {
-        // sem movimento possível → termina turno
         console.log(`⚠️ Monstro ${monster.id || ""} não pode se mover`);
         done();
       }
     } else {
-      // sem movimento restante → termina turno
       done();
     }
   }
 
   step();
 }
-
 
 function isAdjacent(unitA, unitB) {
   const dx = Math.abs(unitA.x - unitB.x);
@@ -665,6 +674,37 @@ function attackHero(monster) {
     playSound("monster_miss", 0.7);
     logMessage(`→ <span class="log-miss">${monster.id} MISS!</span>`);
   }
+  updateHeroHpBubble();
+}
+
+function attackHeroRanged(monster) {
+  const heroAC = state.hero.attributes.armor || 10;
+  const attackRoll =
+    Math.floor(Math.random() * 20) + 1 + (monster.attackBonus || 0);
+
+  logMessage(
+    `🏹 ${monster.id} shoots: ${attackRoll} vs AC ${heroAC}`
+  );
+
+  if (attackRoll >= heroAC) {
+    playSound("arrow", 0.7);
+
+    const damage =
+      Math.floor(Math.random() * (monster.damageMax - monster.damageMin + 1)) +
+      monster.damageMin;
+
+    state.hero.currentHp -= damage;
+
+    logMessage(
+      `→ <span class="log-hit">${monster.id} HIT!</span> ${damage} damage`
+    );
+  } else {
+    playSound("miss", 0.7);
+    logMessage(
+      `→ <span class="log-miss">${monster.id} MISS!</span>`
+    );
+  }
+
   updateHeroHpBubble();
 }
 
@@ -959,7 +999,7 @@ drinkBtn.addEventListener("click", () => {
     return;
   }
 
-  const heal = Math.floor(Math.random() * 10) + 1;
+  const heal = Math.floor(Math.random() * 10) + 10;
   const before = state.hero.currentHp;
 
   state.hero.currentHp = Math.min(before + heal, maxHp);
@@ -1353,4 +1393,34 @@ function tryRespawnMonster(monster) {
   cell.monster = monster;
 
   logMessage(`🧟 ${monster.id} has respawned`);
+}
+
+function isInRangedRange(attacker, target, range) {
+  const dx = Math.abs(attacker.x - target.x);
+  const dy = Math.abs(attacker.y - target.y);
+
+  // só linha reta (estilo grid)
+  if (dx !== 0 && dy !== 0) return false;
+
+  const dist = dx + dy;
+  if (dist > range) return false;
+
+  // verifica paredes entre os tiles
+  let x = attacker.x;
+  let y = attacker.y;
+
+  const stepX = Math.sign(target.x - attacker.x);
+  const stepY = Math.sign(target.y - attacker.y);
+
+  for (let i = 0; i < dist; i++) {
+    const nx = x + stepX;
+    const ny = y + stepY;
+
+    if (hasWallBetween(x, y, nx, ny)) return false;
+
+    x = nx;
+    y = ny;
+  }
+
+  return true;
 }

@@ -1,6 +1,8 @@
 export const Monsters = {
   goblin: {
     sprite: "goblin.png",
+    type: "melee",
+    rangedRange: 0,
     movementRange: 2, 
     attributes: {
       hp: 6,
@@ -14,6 +16,8 @@ export const Monsters = {
 
   goblin_archer: {
     sprite: "goblin_archer.png",
+    type: "archer",
+    rangedRange: 4,
     movementRange: 3,
     attributes: {
       hp: 12,
@@ -27,6 +31,8 @@ export const Monsters = {
 
   goblin_warrior: {
     sprite: "goblin_warrior.png",
+    type: "melee",
+    rangedRange: 0,
     movementRange: 2,
     attributes: {
       hp: 20,
@@ -39,6 +45,8 @@ export const Monsters = {
   },
   wolf: {
     sprite: "wolf.png",
+    type: "melee",
+    rangedRange: 0,
     movementRange: 4,
     attributes: {
       hp: 18,

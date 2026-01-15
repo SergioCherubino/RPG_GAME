@@ -4,8 +4,8 @@ body {
 }
 
 #city {
-  width: 100vw;
-  height: 100vh;
+  width: 1000px;
+  height: 570px;
   background: url("assets/city.png") center/cover no-repeat;
   position: relative;
 }
@@ -18,16 +18,16 @@ body {
 
 /* Ajuste fino conforme sua imagem */
 #questBoard {
-  width: 180px;
-  height: 200px;
-  left: 5px;
-  top: 550px;
+  width: 130px;
+  height: 160px;
+  left: 70px;
+  top: 320px;
 }
 
 #blacksmithDoor {
-  width: 180px;
-  height: 220px;
-  right: 140px;
+  width: 240px;
+  height: 160px;
+  right: 60px;
   top: 320px;
 }
 
@@ -56,4 +56,10 @@ body {
 button {
   margin-top: 10px;
   cursor: pointer;
+}
+
+.hotspot:hover {
+  background: rgba(255, 255, 255, 0.15);
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
 }
