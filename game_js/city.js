@@ -13,7 +13,7 @@ const shopWindow = document.getElementById("shopWindow");
 const goldUI = document.getElementById("gold");
 const shopItemsDiv = document.getElementById("shopItems");
 
-playBGM("Assets/sfx/city_bgm.mp3", 0.5);
+playBGM("./Assets/sfx/city_bgm.mp3", 0.5);
 
 /* =====================
    QUESTS
