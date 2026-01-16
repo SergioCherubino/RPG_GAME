@@ -316,6 +316,8 @@ function moveHeroAlongPath(path) {
     state.hero.y = next.y;
     state.hero.movementLeft--;
 
+    playSound("step", 0.5);
+
     state.grid[next.y][next.x].hero = true;
 
     renderBoard(board);
@@ -656,6 +658,7 @@ function moveMonsterTo(monster, x, y) {
   monster.y = y;
   state.grid[y][x].monster = monster;
 
+  playSound("step", 0.5);
   renderBoard(board);
 }
 function attackHero(monster) {

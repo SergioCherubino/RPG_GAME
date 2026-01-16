@@ -6,13 +6,25 @@ body {
 #city {
   width: 1000px;
   height: 570px;
-  background: url("./Assets/city.png") center/cover no-repeat;
   position: relative;
+  overflow: hidden;
 }
 
-/* Áreas clicáveis invisíveis */
+/* VÍDEO */
+#cityVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none; /* permite clicar nos hotspots */
+}
+
+/* HOTSPOTS POR CIMA */
 .hotspot {
   position: absolute;
+  z-index: 2;
   cursor: pointer;
 }
 

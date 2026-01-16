@@ -5,6 +5,7 @@ const sounds = {
   miss: "Assets/sfx/miss.mp3",
   monster_miss: "Assets/sfx/monster_miss.mp3",
   levelUp: "Assets/sfx/levelup.mp3",
+  step: "Assets/sfx/step.mp3"
 };
 
 const audioPool = {};
